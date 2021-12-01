@@ -1,4 +1,5 @@
 from algebra import Matrix, Vector, RandomGenerator, rand_vec, rand_mat, ln, e
+from tools import argmax
 
 __all__ = ['Modules', 'ReLU', 'Softmax', 'Linear', 'Sequential']
 
@@ -87,6 +88,10 @@ class Linear(Modules):
 
 
 class Sequential(Modules):
+    """
+    a sequential model
+    """
+
     def __init__(self, layers: list, in_units: int, batch_size: int, lr: float, gen=None):
         self.layers = layers
         self.units = None
@@ -109,15 +114,57 @@ class Sequential(Modules):
         return x
 
     # noinspection PyMethodMayBeStatic
-    def loss(self, out, target):
+    def _loss(self, out, target):
         assert out.shape == target.shape
-        return Matrix([[val1 * ln(val2) for val1, val2 in zip(row1, row2)] for row1, row2 in zip(target, out)])
+        return sum(sum(val1 * ln(val2) for val1, val2 in zip(row1, row2)) for row1, row2 in zip(target, out))
 
+    # noinspection PyMethodMayBeStatic
+    def _count_correct(self, out, target):
+        """
+        count the number of correct predictions
 
+        :return: correct number of predictions
+        """
+
+        correct = 0
+        for out_val, target_val in zip(out.T, target.T):
+            if argmax(out_val) == argmax(target_val):
+                correct += 1
+        return correct
 
     def train(self, x, target):
+        """
+        train on a single batch of data, expect shape (features, batch_size)
+
+        :returns: total loss, correct predictions
+        """
+
         out = self.forward(x, require_grad=True)
-        l = self.loss(out, target)
+        l = self._loss(out, target)
+        correct = self._count_correct(out, target)
         x = out - target
         self.backward(x)
-        return l
+        return l, correct
+
+    def fit(self, x, target, epochs):
+        """
+        train on a dataset (multiple batches)
+
+        note that for both x and target, each sample is expected on a column (which means shape[1] == batch_size)
+
+        :param x: a list or iterable of multiple batches, each batch expected as (features, batch_size)
+        :param target: a list or iterable of targets(labels) corresponding to each batch of x, expect one-hot labels
+        :param epochs: number of epochs to train on given dataset
+        """
+
+        assert len(x) == len(target)
+        curr_l, curr_c, curr_sample = 0, 0, 0
+        for i in range(1, epochs + 1):
+            for batch_x, batch_y in zip(x, target):
+                assert batch_x.shape[1] == batch_y.shape[1]
+                print('epoch', i, end=': ')
+                l, c = self.train(batch_x, batch_y)
+                curr_l += l
+                curr_c += c
+                curr_sample += batch_y.shape[1]
+                print('acc', curr_c / curr_sample, '| loss', curr_l / curr_sample)

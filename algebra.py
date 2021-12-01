@@ -192,7 +192,7 @@ class Matrix:
     def __init__(self, content: list):
         self.mat = content
         for i in range(len(content)):
-            assert isinstance(content[i], list) or isinstance(content[i], Vector)
+            assert isinstance(content[i], list) or isinstance(content[i], Vector), type(content[i])
             assert len(content[i]) == len(content[0])
             if not isinstance(content[i], Vector):
                 content[i] = Vector(content[i])
