@@ -46,12 +46,11 @@ class Softmax(Modules):
         pass
 
     def forward(self, x, require_grad=False):
-        exp = e ** x
-        retval = []
+        m = max(max(row) for row in x)
+        exp = e ** (x - m)  # prevent overflow by subtracting max
         if self.axis == 0:
             exp = exp.T
-        for item in exp:
-            retval.append(item / sum(item))
+        retval = [item / sum(item) for item in exp]
         return Matrix(retval) if self.axis == 1 else Matrix(retval).T
 
     def backward(self, x):  # instead of chain rule, compute with analytic derivative combined with loss
@@ -78,7 +77,7 @@ class Linear(Modules):
 
     def backward(self, x):
         m = self._inp.shape[1]  # batch size
-        dw = x @ self._inp / m
+        dw = x @ self._inp.T / m
         db = Vector([sum(row) / m for row in x])
         x = self.w.T @ x
         self.w = self.w - dw * self.lr
@@ -105,12 +104,14 @@ class Sequential(Modules):
 
     def forward(self, x, require_grad=False):
         for layer in self.layers:
-            x = layer.forward(x)
+            x = layer.forward(x, require_grad)
+            print('forward', layer)
         return x
 
     def backward(self, x):
         for layer in self.layers:
             x = layer.backward(x)
+            print('backward', layer)
         return x
 
     # noinspection PyMethodMayBeStatic
@@ -127,7 +128,7 @@ class Sequential(Modules):
         """
 
         correct = 0
-        for out_val, target_val in zip(out.T, target.T):
+        for out_val, target_val in zip(zip(*out), zip(*target)):
             if argmax(out_val) == argmax(target_val):
                 correct += 1
         return correct
@@ -158,11 +159,13 @@ class Sequential(Modules):
         """
 
         assert len(x) == len(target)
-        curr_l, curr_c, curr_sample = 0, 0, 0
+
+        print('training starts....')
         for i in range(1, epochs + 1):
+            curr_l, curr_c, curr_sample = 0, 0, 0
+            print('epoch', i, end=': ')
             for batch_x, batch_y in zip(x, target):
                 assert batch_x.shape[1] == batch_y.shape[1]
-                print('epoch', i, end=': ')
                 l, c = self.train(batch_x, batch_y)
                 curr_l += l
                 curr_c += c

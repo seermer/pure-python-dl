@@ -327,6 +327,7 @@ class Matrix:
 
         :return: a new matrix object containing result
         """
+        assert isinstance(other, int) or isinstance(other, float)
 
         return Matrix([other ** row for row in self.mat])
 
@@ -364,7 +365,7 @@ def rand_mat(size: tuple, gen: RandomGenerator):
 
 def rand_vec(length: int, gen: RandomGenerator):
     """
-    generate a vector of numbers ranging from -.5 to .5
+    generate a vector of numbers ranging from -.05 to .05
 
     :param length: length of returned vector
     :param gen: random generator object
@@ -376,13 +377,13 @@ def rand_vec(length: int, gen: RandomGenerator):
 
 def rand_num(gen: RandomGenerator):
     """
-    generate a number ranging from -.5 to .5
+    generate a number ranging from -.05 to .05
 
     :param gen: random generator object
     :return: a random number
     """
 
-    return (next(gen) / 2 ** 31 - 1.) / 2.
+    return (next(gen) / 2 ** 31 - 1.) / 20.
 
 
 def ln(x):
@@ -394,5 +395,5 @@ def ln(x):
         out = out_
         exp = e ** out
         out_ = out + 2. * (x - exp) / (x + exp)
-        if abs(out - out_) <= 1e-30:
+        if abs(out - out_) <= 1e-16:
             return out_
