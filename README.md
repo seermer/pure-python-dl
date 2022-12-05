@@ -1,5 +1,3 @@
-# Project in progress
-
 ## Deep Learning with Pure Python
 
 Neural Network implemented with pure python
